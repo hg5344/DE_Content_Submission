@@ -1,314 +1,304 @@
-{\rtf1\ansi\ansicpg1252\cocoartf2822
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww34360\viewh18600\viewkind0
-\deftab560
-\pard\pardeftab560\slleading20\partightenfactor0
+---
+title: "Batch Processing vs Stream Processing: When to Use What"
+description: "Learn the difference between batch and stream processing, their trade-offs, and how to choose the right model for data engineering systems."
+section: "de-fundamentals"
+module: "core-concepts"
+lesson_number: 1
+level: "beginner"
+author: "Harshit Gupta"
+date: "2026-03-07"
+reading_time: "8 min read"
+tags: ["data-engineering", "batch-processing", "stream-processing"]
+is_free: true
+prev_lesson: ""
+next_lesson: ""
+---
 
-\f0\fs26 \cf0 ---\
-title: "Batch Processing vs Stream Processing: When to Use What"\
-description: "Learn the difference between batch and stream processing, their trade-offs, and how to choose the right model for data engineering systems."\
-section: "de-fundamentals"\
-module: "core-concepts"\
-lesson_number: 1\
-level: "beginner"\
-author: "Harshit Gupta"\
-date: "2026-03-07"\
-reading_time: "8 min read"\
-tags: ["data-engineering", "batch-processing", "stream-processing"]\
-is_free: true\
-prev_lesson: ""\
-next_lesson: \'93\'94\
----\
-\
-## Introduction\
-\
-Imagine you open a food delivery app and watch the delivery status update as your rider moves through the city. Now imagine that same company\'92s finance team calculating yesterday\'92s total revenue, refunds, and taxes in one big overnight job. Both are examples of data processing. Both are valid. But they solve very different problems.\
-\
-That is the heart of the batch vs stream processing question. New data engineers often assume stream processing is automatically better because it sounds more modern and more real-time. In practice, that is rarely how good engineering decisions are made. The better question is: how quickly does the business actually need the answer, and what complexity is the team willing to own in return?\
-\
-This topic matters because processing choices shape architecture, tooling, cost, reliability, and even team workflows. If you choose batch where real-time decisions are needed, the system may feel slow and unhelpful. If you choose streaming where a daily update would have been enough, you may end up with a complex system that is expensive to run and hard to debug. By the end of this article, you should be able to look at a use case like fraud detection, dashboards, or inventory updates and explain when batch is enough, when streaming is worth it, and when a hybrid model makes the most sense.\
-\
-<Callout type="key-insight" title="Key Insight">\
-The real difference between batch and streaming is not the file format or the tool. It is the latency expectation of the business. Batch says, "an answer later is fine." Streaming says, "an answer late may lose value."\
-</Callout>\
-\
-## Core explanation\
-\
-At a high level, both batch and stream processing take input data, transform it, and produce useful output. The difference is when the system does the work and how often it reacts to new data.\
-\
-### What is batch processing?\
-\
-Batch processing collects data over a period of time and processes it together as a group, or batch. Instead of reacting to every event immediately, the system waits until a scheduled time or until enough data has accumulated.\
-\
-A classic example is a nightly sales report. Orders arrive all day, but the analytics pipeline runs at 2:00 AM, reads the previous day\'92s transactions, computes metrics, and writes the final results to a warehouse or BI dashboard.\
-\
-A typical batch pipeline looks like this:\
-\
-1. Data lands in storage such as object storage, files, or a database.\
-2. A scheduler triggers a job every hour, every day, or on some fixed interval.\
-3. The job reads a bounded slice of historical data.\
-4. It performs transformations, joins, quality checks, and aggregations.\
-5. The results are written to downstream tables, dashboards, or files.\
-\
-<Image\
-  src="/images/batch_vs_stream_architecture.svg"\
-  alt="Architecture comparison showing batch processing on the left and stream processing on the right"\
-  caption="Batch processing waits and operates on chunks of accumulated data, while stream processing reacts continuously as events arrive."\
-/>\
-\
-Batch is widely used because it is easier to reason about. The input is bounded, the run is finite, and rerunning the job is usually straightforward. That simplicity makes batch a strong fit for reporting, backfills, periodic transformations, and analytics workloads where immediate freshness is not required.\
-\
-### What is stream processing?\
-\
-Stream processing handles data continuously as it arrives. Instead of waiting for a full chunk, the system consumes a sequence of events and updates outputs in near real time.\
-\
-Examples include:\
-- detecting suspicious credit card activity within seconds\
-- updating a driver\'92s location in a ride-sharing app\
-- recomputing inventory after every order\
-- alerting when an application\'92s error rate suddenly spikes\
-\
-A typical streaming pipeline looks like this:\
-\
-1. Events are produced continuously by applications, devices, databases, or services.\
-2. A messaging system such as Kafka or Kinesis collects those events.\
-3. A stream processor reads them continuously.\
-4. The processor filters, enriches, aggregates, or joins the events.\
-5. Results are pushed to dashboards, feature stores, alerts, or operational databases.\
-\
-Streaming is powerful because it lowers latency. But that speed introduces more operational and conceptual complexity. You now need to think about duplicate events, out-of-order arrival, late data, checkpointing, state recovery, and how to replay history when logic changes.\
-\
-### Batch and stream are both about data movement, but with different timing\
-\
-A beginner mistake is to think batch means "files" and streaming means "messages." Those patterns are common, but the deeper distinction is timing.\
-\
-In batch systems, the data is usually processed after a delay and in finite chunks. In streaming systems, the pipeline is always on and reacts to new input continuously. That single difference affects:\
-- system design\
-- operational overhead\
-- cost profile\
-- failure recovery\
-- user expectations\
-- data correctness concerns\
-\
-### Processing time vs event time\
-\
-One idea that becomes much more important in streaming is the difference between processing time and event time.\
-\
-- **Processing time** is when your pipeline sees the event.\
-- **Event time** is when the event actually happened.\
-\
-Suppose a user taps a button in a mobile app at 10:00:00, but due to poor connectivity the event reaches your system at 10:02:00. If you are doing real-time analytics, fraud checks, or time-window aggregations, this difference matters.\
-\
-In streaming, you often need logic for:\
-- late-arriving events\
-- out-of-order events\
-- windowing over time\
-- deciding when a result is "complete enough" to publish\
-\
-Batch systems often avoid much of this complexity because they work on complete historical slices. Once the day is over and the file is ready, the data is more stable.\
-\
-<Callout type="info" title="Context">\
-For beginner interviews, you usually do not need to explain watermark algorithms in depth. But you should understand that stream processing has to deal with late and out-of-order events in ways batch processing often does not.\
-</Callout>\
-\
-### A simple code example\
-\
-The query below counts events by hour. In a batch system, you might run it once over yesterday\'92s data. In a streaming system, you might run the same logic continuously as events arrive.\
-\
-```sql title="aggregation_query.sql"\
-SELECT\
-  date_trunc('hour', event_time) AS hour,\
-  COUNT(*) AS event_count\
-FROM events\
-GROUP BY 1\
-ORDER BY 1;\
-```\
-\
-The SQL itself looks simple. The difference is in the execution model. In batch, the input is fixed and the answer is final when the query completes. In streaming, the counts keep changing as new events arrive, and the system has to decide how to update results when delayed events show up.\
-\
-## Comparison / Decision framework\
-\
-The easiest way to choose between batch and stream processing is not to start with tools. Start with the business need.\
-\
-Ask this first: **How late can the answer be before it loses value?**\
-\
-If the business can happily wait an hour, a day, or even longer, batch is often the right answer. If the answer must trigger an immediate action, streaming becomes much more valuable.\
-\
-<Image\
-  src="/images/batch-vs-stream-decision-framework.svg"\
-  alt="A simple decision framework for choosing between batch and stream processing"\
-  caption="Choose based on how much latency the business can tolerate and how much complexity the team can operate safely."\
-/>\
-\
-### Comparison table\
-\
-| Dimension | Batch Processing | Stream Processing |\
-| --- | --- | --- |\
-| Data handling | Processes data in chunks | Processes data continuously |\
-| Latency | Minutes to hours or longer | Milliseconds to seconds |\
-| Operational complexity | Lower | Higher |\
-| Cost profile | Often cheaper for periodic workloads | Often higher because systems stay on |\
-| Failure recovery | Usually easier to rerun | Requires checkpointing and state recovery |\
-| Debugging | Easier because input is bounded | Harder because data and state are always moving |\
-| Best fit | Reporting, backfills, daily KPIs | Alerts, live dashboards, fraud detection, personalization |\
-| Data correctness concerns | Usually simpler | Must handle duplicates, lateness, and disorder |\
-\
-### A practical decision framework\
-\
-#### 1. How fresh does the output need to be?\
-\
-This is the most important question.\
-\
-If a dashboard updates once per day and the business is satisfied, batch is enough.\
-\
-If users expect instant updates or the business must react in seconds, streaming is a better fit.\
-\
-Examples:\
-- daily revenue report: batch\
-- real-time fraud prevention: stream\
-- nightly dimension table refresh: batch\
-- live operational alerting: stream\
-\
-#### 2. What happens if the answer is late?\
-\
-This question is often more useful than "How fast should it be?"\
-\
-If a late answer is mildly annoying, favor the simpler system.\
-\
-If a late answer means lost money, bad customer experience, compliance risk, or a missed operational response, then the lower latency of streaming may justify its complexity.\
-\
-#### 3. Can the team operate a streaming system reliably?\
-\
-Streaming is not just a batch job that runs faster. It often introduces:\
-- event brokers\
-- stateful processing\
-- replay strategy\
-- schema evolution concerns\
-- stronger monitoring needs\
-- more careful failure handling\
-\
-A smaller team with moderate latency needs may get far more value from a clean hourly batch pipeline than from an always-on streaming platform that nobody enjoys maintaining.\
-\
-<Callout type="tip" title="Pro Tip">\
-A strong default in many real companies is to start with batch and move to streaming only when the business case is clear. Real-time architecture is powerful, but it should solve a real-time problem.\
-</Callout>\
-\
-#### 4. Will you need historical recomputation or backfills?\
-\
-Batch systems are naturally strong here. If business logic changes and you need to recompute six months of history, batch pipelines are usually easier to rerun and validate.\
-\
-Streaming systems can support replay, but replaying streams correctly and safely is often more operationally demanding.\
-\
-#### 5. Would a hybrid approach work better?\
-\
-In many production systems, the best answer is neither pure batch nor pure streaming. It is both.\
-\
-For example:\
-- stream processing for real-time alerts and user-facing updates\
-- batch processing for daily reconciliation, official metrics, and backfills\
-\
-This hybrid pattern is extremely common because it balances speed with stability. The real-time layer serves immediate needs, while the batch layer gives you a trusted source of record.\
-\
-## Real-world examples\
-\
-### Example 1: Uber\
-\
-Uber is one of the clearest examples of a business that benefits heavily from stream processing. The platform depends on fast-moving events: driver location updates, rider requests, trip state changes, estimated arrival times, and marketplace signals. If these updates were handled only in hourly batches, the product would feel broken.\
-\
-Streaming makes sense here because latency directly affects the core user experience. A stale location update can show the wrong ETA. A slow marketplace signal can lead to worse rider-driver matching. In other words, being late reduces product value immediately.\
-\
-But Uber also has many use cases where batch remains the better choice. Financial reporting, historical trend analysis, experimentation summaries, and model training datasets often do not need second-level freshness. These workloads are usually better served by batch processing, where completeness, reproducibility, and easier debugging matter more than instant output.\
-\
-The takeaway is important: even a famously real-time company does not use streaming for everything.\
-\
-### Example 2: Stripe\
-\
-Stripe is another useful example because payments naturally include both real-time and periodic workloads.\
-\
-On the real-time side, payment event handling, risk checks, fraud signals, and operational monitoring benefit from streaming or near-real-time pipelines. If a suspicious transaction is detected only after it has fully cleared, the business value of detection drops sharply.\
-\
-On the other hand, finance reconciliation, merchant statements, monthly summaries, and long-horizon analytics are usually better aligned with batch processing. These workflows prioritize correctness, completeness, and auditability over ultra-low latency.\
-\
-Stripe-like systems make a great teaching example because they show that companies do not make one universal architecture choice. They make many local decisions based on the consequence of delay.\
-\
-## Common misconceptions\
-\
-### Misconception 1: Streaming is always better because it is faster\
-\
-This is probably the most common misunderstanding.\
-\
-Streaming is faster in terms of latency, but faster is not automatically better. If the business only checks a KPI once each morning, real-time infrastructure may add a lot of complexity without creating much extra value.\
-\
-The best architecture is not the most advanced one. It is the one that solves the business problem with the least unnecessary complexity.\
-\
-<Callout type="warning" title="Common Mistake">\
-Candidates often say, "I would use streaming because it is faster." That answer is incomplete. Faster only matters when lower latency meaningfully changes the business outcome.\
-</Callout>\
-\
-### Misconception 2: Batch means old, slow, and outdated\
-\
-Batch is still everywhere because many important business workflows are periodic by nature. Payroll, billing, warehouse transformations, daily KPI generation, backfills, and historical corrections often work extremely well in batch.\
-\
-In fact, many teams trust batch pipelines for their most important curated datasets because batch is easier to validate, replay, and audit.\
-\
-### Misconception 3: Streaming means every record is processed instantly one by one\
-\
-Not necessarily. Some systems use micro-batching under the hood, while others process individual events continuously. For most architectural discussions, that implementation detail matters less than whether the system is designed for continuous low-latency updates.\
-\
-What matters most is the operating model, not whether the engine internally groups a few events together before computing the result.\
-\
-## Interview relevance box\
-\
-<Callout type="interview" title="Interview Relevance">\
-This topic appears frequently in data engineering interviews because it tests judgment, not just definitions. Interviewers want to know whether you can connect business requirements to architecture choices. A strong answer discusses latency, the cost of being late, operational complexity, correctness concerns, and whether a hybrid model may be more practical than a pure one.\
-</Callout>\
-\
-Here is how this topic usually appears in interviews:\
-\
-### 1. Pipeline design questions\
-\
-You may be asked to design a system for clickstream analytics, fraud detection, inventory updates, or dashboard refreshes. The interviewer is often less interested in whether you mention a specific tool and more interested in whether you can justify your choice between batch and streaming.\
-\
-### 2. Trade-off discussions\
-\
-Common questions include:\
-- Why not build everything in streaming?\
-- When is batch good enough?\
-- What makes streaming harder to maintain?\
-- How would you explain the trade-off to a product manager?\
-\
-This is where practical thinking matters. Good candidates avoid absolute statements and explain the decision in terms of business value and engineering cost.\
-\
-### 3. Follow-up depth checks\
-\
-If you choose streaming, expect follow-up questions about:\
-- late-arriving events\
-- duplicate handling\
-- stateful processing\
-- replay and recovery\
-- event-time versus processing-time logic\
-\
-For a beginner role, you do not need deep implementation detail. But you should show awareness that streaming introduces correctness and operational challenges that batch pipelines often avoid.\
-\
-## Key takeaways\
-\
-<KeyTakeaways>\
-- Batch processing handles data in scheduled chunks and is ideal when the business can tolerate some delay.\
-- Stream processing handles events continuously and is valuable when low latency directly improves product or business outcomes.\
-- The best choice depends on freshness requirements, the cost of being late, and the team\'92s ability to operate the system reliably.\
-- Many real-world architectures are hybrid, using streaming for immediate action and batch for reconciliation, reporting, and backfills.\
-- In interviews, the strongest answers focus on trade-offs and decision-making rather than treating streaming as automatically superior.\
-</KeyTakeaways>\
-\
-## What's next\
-\
-Once you understand batch vs stream processing, the next logical topic is **ETL vs ELT**. That topic builds on the same core skill: choosing the right architecture based on where transformations should happen, how modern warehouses change the design, and what trade-offs matter most in practice.\
-\
-<LessonNavigation\
-  prev=\{\{ slug: "", title: "" \}\}\
-  next=\{\{ slug: "etl-vs-elt-the-modern-debate", title: "ETL vs ELT: The Modern Debate" \}\}\
-/>\
-\
-}
+## Introduction
+
+Imagine you open a food delivery app and watch the delivery status update as your rider moves through the city. Now imagine that same company’s finance team calculating yesterday’s total revenue, refunds, and taxes in one big overnight job. Both are examples of data processing. Both are valid. But they solve very different problems.
+
+That is the heart of the batch vs stream processing question. New data engineers often assume stream processing is automatically better because it sounds more modern and more real-time. In practice, that is rarely how good engineering decisions are made. The better question is: how quickly does the business actually need the answer, and what complexity is the team willing to own in return?
+
+This topic matters because processing choices shape architecture, tooling, cost, reliability, and even team workflows. If you choose batch where real-time decisions are needed, the system may feel slow and unhelpful. If you choose streaming where a daily update would have been enough, you may end up with a complex system that is expensive to run and hard to debug. By the end of this article, you should be able to look at a use case like fraud detection, dashboards, or inventory updates and explain when batch is enough, when streaming is worth it, and when a hybrid model makes the most sense.
+
+<Callout type="key-insight" title="Key Insight">
+The real difference between batch and streaming is not the file format or the tool. It is the latency expectation of the business. Batch says, "an answer later is fine." Streaming says, "an answer late may lose value."
+</Callout>
+
+## Core explanation
+
+At a high level, both batch and stream processing take input data, transform it, and produce useful output. The difference is when the system does the work and how often it reacts to new data.
+
+### What is batch processing?
+
+Batch processing collects data over a period of time and processes it together as a group, or batch. Instead of reacting to every event immediately, the system waits until a scheduled time or until enough data has accumulated.
+
+A classic example is a nightly sales report. Orders arrive all day, but the analytics pipeline runs at 2:00 AM, reads the previous day’s transactions, computes metrics, and writes the final results to a warehouse or BI dashboard.
+
+A typical batch pipeline looks like this:
+
+1. Data lands in storage such as object storage, files, or a database.
+2. A scheduler triggers a job every hour, every day, or on some fixed interval.
+3. The job reads a bounded slice of historical data.
+4. It performs transformations, joins, quality checks, and aggregations.
+5. The results are written to downstream tables, dashboards, or files.
+
+<Image
+  src="/Images/batch_vs_stream_architecture.svg"
+  alt="Architecture comparison showing batch processing on the left and stream processing on the right"
+  caption="Batch processing waits and operates on chunks of accumulated data, while stream processing reacts continuously as events arrive."
+/>
+
+Batch is widely used because it is easier to reason about. The input is bounded, the run is finite, and rerunning the job is usually straightforward. That simplicity makes batch a strong fit for reporting, backfills, periodic transformations, and analytics workloads where immediate freshness is not required.
+
+### What is stream processing?
+
+Stream processing handles data continuously as it arrives. Instead of waiting for a full chunk, the system consumes a sequence of events and updates outputs in near real time.
+
+Examples include:
+- detecting suspicious credit card activity within seconds
+- updating a driver’s location in a ride-sharing app
+- recomputing inventory after every order
+- alerting when an application’s error rate suddenly spikes
+
+A typical streaming pipeline looks like this:
+
+1. Events are produced continuously by applications, devices, databases, or services.
+2. A messaging system such as Kafka or Kinesis collects those events.
+3. A stream processor reads them continuously.
+4. The processor filters, enriches, aggregates, or joins the events.
+5. Results are pushed to dashboards, feature stores, alerts, or operational databases.
+
+Streaming is powerful because it lowers latency. But that speed introduces more operational and conceptual complexity. You now need to think about duplicate events, out-of-order arrival, late data, checkpointing, state recovery, and how to replay history when logic changes.
+
+### Batch and stream are both about data movement, but with different timing
+
+A beginner mistake is to think batch means "files" and streaming means "messages." Those patterns are common, but the deeper distinction is timing.
+
+In batch systems, the data is usually processed after a delay and in finite chunks. In streaming systems, the pipeline is always on and reacts to new input continuously. That single difference affects:
+- system design
+- operational overhead
+- cost profile
+- failure recovery
+- user expectations
+- data correctness concerns
+
+### Processing time vs event time
+
+One idea that becomes much more important in streaming is the difference between processing time and event time.
+
+- **Processing time** is when your pipeline sees the event.
+- **Event time** is when the event actually happened.
+
+Suppose a user taps a button in a mobile app at 10:00:00, but due to poor connectivity the event reaches your system at 10:02:00. If you are doing real-time analytics, fraud checks, or time-window aggregations, this difference matters.
+
+In streaming, you often need logic for:
+- late-arriving events
+- out-of-order events
+- windowing over time
+- deciding when a result is "complete enough" to publish
+
+Batch systems often avoid much of this complexity because they work on complete historical slices. Once the day is over and the file is ready, the data is more stable.
+
+<Callout type="info" title="Context">
+For beginner interviews, you usually do not need to explain watermark algorithms in depth. But you should understand that stream processing has to deal with late and out-of-order events in ways batch processing often does not.
+</Callout>
+
+### A simple code example
+
+The query below counts events by hour. In a batch system, you might run it once over yesterday’s data. In a streaming system, you might run the same logic continuously as events arrive.
+
+```sql title="aggregation_query.sql"
+SELECT
+  date_trunc('hour', event_time) AS hour,
+  COUNT(*) AS event_count
+FROM events
+GROUP BY 1
+ORDER BY 1;
+```
+
+The SQL itself looks simple. The difference is in the execution model. In batch, the input is fixed and the answer is final when the query completes. In streaming, the counts keep changing as new events arrive, and the system has to decide how to update results when delayed events show up.
+
+## Comparison / Decision framework
+
+The easiest way to choose between batch and stream processing is not to start with tools. Start with the business need.
+
+Ask this first: **How late can the answer be before it loses value?**
+
+If the business can happily wait an hour, a day, or even longer, batch is often the right answer. If the answer must trigger an immediate action, streaming becomes much more valuable.
+
+<Image
+  src="/Images/batch-vs-stream-decision-framework.svg"
+  alt="A simple decision framework for choosing between batch and stream processing"
+  caption="Choose based on how much latency the business can tolerate and how much complexity the team can operate safely."
+/>
+
+### Comparison table
+
+| Dimension | Batch Processing | Stream Processing |
+| --- | --- | --- |
+| Data handling | Processes data in chunks | Processes data continuously |
+| Latency | Minutes to hours or longer | Milliseconds to seconds |
+| Operational complexity | Lower | Higher |
+| Cost profile | Often cheaper for periodic workloads | Often higher because systems stay on |
+| Failure recovery | Usually easier to rerun | Requires checkpointing and state recovery |
+| Debugging | Easier because input is bounded | Harder because data and state are always moving |
+| Best fit | Reporting, backfills, daily KPIs | Alerts, live dashboards, fraud detection, personalization |
+| Data correctness concerns | Usually simpler | Must handle duplicates, lateness, and disorder |
+
+### A practical decision framework
+
+#### 1. How fresh does the output need to be?
+
+This is the most important question.
+
+If a dashboard updates once per day and the business is satisfied, batch is enough.
+
+If users expect instant updates or the business must react in seconds, streaming is a better fit.
+
+Examples:
+- daily revenue report: batch
+- real-time fraud prevention: stream
+- nightly dimension table refresh: batch
+- live operational alerting: stream
+
+#### 2. What happens if the answer is late?
+
+This question is often more useful than "How fast should it be?"
+
+If a late answer is mildly annoying, favor the simpler system.
+
+If a late answer means lost money, bad customer experience, compliance risk, or a missed operational response, then the lower latency of streaming may justify its complexity.
+
+#### 3. Can the team operate a streaming system reliably?
+
+Streaming is not just a batch job that runs faster. It often introduces:
+- event brokers
+- stateful processing
+- replay strategy
+- schema evolution concerns
+- stronger monitoring needs
+- more careful failure handling
+
+A smaller team with moderate latency needs may get far more value from a clean hourly batch pipeline than from an always-on streaming platform that nobody enjoys maintaining.
+
+<Callout type="tip" title="Pro Tip">
+A strong default in many real companies is to start with batch and move to streaming only when the business case is clear. Real-time architecture is powerful, but it should solve a real-time problem.
+</Callout>
+
+#### 4. Will you need historical recomputation or backfills?
+
+Batch systems are naturally strong here. If business logic changes and you need to recompute six months of history, batch pipelines are usually easier to rerun and validate.
+
+Streaming systems can support replay, but replaying streams correctly and safely is often more operationally demanding.
+
+#### 5. Would a hybrid approach work better?
+
+In many production systems, the best answer is neither pure batch nor pure streaming. It is both.
+
+For example:
+- stream processing for real-time alerts and user-facing updates
+- batch processing for daily reconciliation, official metrics, and backfills
+
+This hybrid pattern is extremely common because it balances speed with stability. The real-time layer serves immediate needs, while the batch layer gives you a trusted source of record.
+
+## Real-world examples
+
+### Example 1: Uber
+
+Uber is one of the clearest examples of a business that benefits heavily from stream processing. The platform depends on fast-moving events: driver location updates, rider requests, trip state changes, estimated arrival times, and marketplace signals. If these updates were handled only in hourly batches, the product would feel broken.
+
+Streaming makes sense here because latency directly affects the core user experience. A stale location update can show the wrong ETA. A slow marketplace signal can lead to worse rider-driver matching. In other words, being late reduces product value immediately.
+
+But Uber also has many use cases where batch remains the better choice. Financial reporting, historical trend analysis, experimentation summaries, and model training datasets often do not need second-level freshness. These workloads are usually better served by batch processing, where completeness, reproducibility, and easier debugging matter more than instant output.
+
+The takeaway is important: even a famously real-time company does not use streaming for everything.
+
+### Example 2: Stripe
+
+Stripe is another useful example because payments naturally include both real-time and periodic workloads.
+
+On the real-time side, payment event handling, risk checks, fraud signals, and operational monitoring benefit from streaming or near-real-time pipelines. If a suspicious transaction is detected only after it has fully cleared, the business value of detection drops sharply.
+
+On the other hand, finance reconciliation, merchant statements, monthly summaries, and long-horizon analytics are usually better aligned with batch processing. These workflows prioritize correctness, completeness, and auditability over ultra-low latency.
+
+Stripe-like systems make a great teaching example because they show that companies do not make one universal architecture choice. They make many local decisions based on the consequence of delay.
+
+## Common misconceptions
+
+### Misconception 1: Streaming is always better because it is faster
+
+This is probably the most common misunderstanding.
+
+Streaming is faster in terms of latency, but faster is not automatically better. If the business only checks a KPI once each morning, real-time infrastructure may add a lot of complexity without creating much extra value.
+
+The best architecture is not the most advanced one. It is the one that solves the business problem with the least unnecessary complexity.
+
+<Callout type="warning" title="Common Mistake">
+Candidates often say, "I would use streaming because it is faster." That answer is incomplete. Faster only matters when lower latency meaningfully changes the business outcome.
+</Callout>
+
+### Misconception 2: Batch means old, slow, and outdated
+
+Batch is still everywhere because many important business workflows are periodic by nature. Payroll, billing, warehouse transformations, daily KPI generation, backfills, and historical corrections often work extremely well in batch.
+
+In fact, many teams trust batch pipelines for their most important curated datasets because batch is easier to validate, replay, and audit.
+
+### Misconception 3: Streaming means every record is processed instantly one by one
+
+Not necessarily. Some systems use micro-batching under the hood, while others process individual events continuously. For most architectural discussions, that implementation detail matters less than whether the system is designed for continuous low-latency updates.
+
+What matters most is the operating model, not whether the engine internally groups a few events together before computing the result.
+
+## Interview relevance box
+
+<Callout type="interview" title="Interview Relevance">
+This topic appears frequently in data engineering interviews because it tests judgment, not just definitions. Interviewers want to know whether you can connect business requirements to architecture choices. A strong answer discusses latency, the cost of being late, operational complexity, correctness concerns, and whether a hybrid model may be more practical than a pure one.
+</Callout>
+
+Here is how this topic usually appears in interviews:
+
+### 1. Pipeline design questions
+
+You may be asked to design a system for clickstream analytics, fraud detection, inventory updates, or dashboard refreshes. The interviewer is often less interested in whether you mention a specific tool and more interested in whether you can justify your choice between batch and streaming.
+
+### 2. Trade-off discussions
+
+Common questions include:
+- Why not build everything in streaming?
+- When is batch good enough?
+- What makes streaming harder to maintain?
+- How would you explain the trade-off to a product manager?
+
+This is where practical thinking matters. Good candidates avoid absolute statements and explain the decision in terms of business value and engineering cost.
+
+### 3. Follow-up depth checks
+
+If you choose streaming, expect follow-up questions about:
+- late-arriving events
+- duplicate handling
+- stateful processing
+- replay and recovery
+- event-time versus processing-time logic
+
+For a beginner role, you do not need deep implementation detail. But you should show awareness that streaming introduces correctness and operational challenges that batch pipelines often avoid.
+
+## Key takeaways
+
+<KeyTakeaways>
+- Batch processing handles data in scheduled chunks and is ideal when the business can tolerate some delay.
+- Stream processing handles events continuously and is valuable when low latency directly improves product or business outcomes.
+- The best choice depends on freshness requirements, the cost of being late, and the team’s ability to operate the system reliably.
+- Many real-world architectures are hybrid, using streaming for immediate action and batch for reconciliation, reporting, and backfills.
+- In interviews, the strongest answers focus on trade-offs and decision-making rather than treating streaming as automatically superior.
+</KeyTakeaways>
+
+## What's next
+
+Once you understand batch vs stream processing, the next logical topic is **ETL vs ELT**. That topic builds on the same core skill: choosing the right architecture based on where transformations should happen, how modern warehouses change the design, and what trade-offs matter most in practice.
+
+<LessonNavigation
+  prev={{ slug: "", title: "" }}
+  next={{ slug: "", title: "" }}
+/>
