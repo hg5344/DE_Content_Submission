@@ -1,0 +1,77 @@
+<svg width="1200" height="820" viewBox="0 0 1200 820" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Batch vs Stream Decision Framework</title>
+  <desc id="desc">A polished flowchart showing how to choose between batch and stream processing based on latency needs, business impact, and operational complexity.</desc>
+
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .neutral { fill: #ffffff; stroke: #dbe4ee; stroke-width: 2; rx: 18; ry: 18; }
+      .decision { fill: #fff7ed; stroke: #ea580c; stroke-width: 2; }
+      .batch { fill: #eef2ff; stroke: #4f46e5; stroke-width: 2; rx: 18; ry: 18; }
+      .stream { fill: #ecfeff; stroke: #0891b2; stroke-width: 2; rx: 18; ry: 18; }
+      .hybrid { fill: #f0fdf4; stroke: #16a34a; stroke-width: 2; rx: 18; ry: 18; }
+      .title { font: 700 30px Arial, sans-serif; fill: #0f172a; }
+      .label { font: 700 19px Arial, sans-serif; fill: #0f172a; }
+      .small { font: 500 14px Arial, sans-serif; fill: #334155; }
+      .tiny { font: 600 14px Arial, sans-serif; fill: #64748b; }
+      .connector { stroke: #64748b; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrowhead); }
+    </style>
+
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#94a3b8" flood-opacity="0.18"></feDropShadow>
+    </filter>
+
+    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="6.6" refY="3.2" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3.2 L0,6.4 Z" fill="#64748b"></path>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1200" height="820"></rect>
+
+  <text x="600" y="55" text-anchor="middle" class="title">When Should You Use Batch vs Stream?</text>
+  <text x="600" y="84" text-anchor="middle" class="small">Choose based on latency needs, business impact, and how much complexity the team can safely operate.</text>
+
+  <rect class="neutral" x="400" y="115" width="400" height="86" filter="url(#softShadow)"></rect>
+  <text x="600" y="148" text-anchor="middle" class="label">Start with the business need</text>
+  <text x="600" y="174" text-anchor="middle" class="small">Do not begin with tools. Begin with freshness requirements.</text>
+
+  <polygon class="decision" points="600,235 770,330 600,425 430,330" filter="url(#softShadow)"></polygon>
+  <text x="600" y="315" text-anchor="middle" class="label">Does the business need</text>
+  <text x="600" y="342" text-anchor="middle" class="label">near real-time output?</text>
+
+  <path class="connector" d="M600 201 C600 218, 600 224, 600 235"></path>
+
+  <rect class="batch" x="70" y="500" width="350" height="155" filter="url(#softShadow)"></rect>
+  <text x="245" y="536" text-anchor="middle" class="label">Choose Batch Processing</text>
+  <text x="245" y="567" text-anchor="middle" class="small">Use when hourly or daily freshness is enough,</text>
+  <text x="245" y="590" text-anchor="middle" class="small">reruns are important, and lower complexity</text>
+  <text x="245" y="613" text-anchor="middle" class="small">matters more than instant updates.</text>
+  <text x="245" y="640" text-anchor="middle" class="tiny">Examples: reporting, backfills, daily KPIs</text>
+
+  <rect class="stream" x="780" y="500" width="350" height="155" filter="url(#softShadow)"></rect>
+  <text x="955" y="536" text-anchor="middle" class="label">Choose Stream Processing</text>
+  <text x="955" y="567" text-anchor="middle" class="small">Use when acting late reduces business value</text>
+  <text x="955" y="590" text-anchor="middle" class="small">and the team can manage always-on systems</text>
+  <text x="955" y="613" text-anchor="middle" class="small">with higher operational complexity.</text>
+  <text x="955" y="640" text-anchor="middle" class="tiny">Examples: fraud checks, alerts, live tracking</text>
+
+  <rect class="neutral" x="415" y="510" width="370" height="125" filter="url(#softShadow)"></rect>
+  <text x="600" y="545" text-anchor="middle" class="label">Can you use both?</text>
+  <text x="600" y="574" text-anchor="middle" class="small">A hybrid model is common in production:</text>
+  <text x="600" y="598" text-anchor="middle" class="small">stream for immediate actions, batch for reconciliation.</text>
+
+  <rect class="hybrid" x="280" y="700" width="640" height="92" filter="url(#softShadow)"></rect>
+  <text x="600" y="734" text-anchor="middle" class="label">Common real-world answer: Hybrid Architecture</text>
+  <text x="600" y="758" text-anchor="middle" class="small">Use streaming where latency matters.</text>
+  <text x="600" y="779" text-anchor="middle" class="small">Use batch where stability, auditability, and backfills matter more.</text>
+
+  <path class="connector" d="M430 330 C335 330, 275 390, 245 500"></path>
+  <text x="338" y="312" class="tiny">No</text>
+
+  <path class="connector" d="M770 330 C865 330, 925 390, 955 500"></path>
+  <text x="848" y="312" class="tiny">Yes</text>
+
+  <path class="connector" d="M245 655 C245 685, 455 675, 530 700"></path>
+  <path class="connector" d="M955 655 C955 685, 745 675, 670 700"></path>
+  <path class="connector" d="M600 635 C600 662, 600 676, 600 700"></path>
+</svg>
